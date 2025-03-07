@@ -1,0 +1,15 @@
+.App {
+  text-align: center;
+}
+
+#background {
+  background-color: #441f26;
+  background-image: url('img/black-paper.png');
+  background-size: cover;  /* Ensures the background image covers the entire container */
+  background-position: center;  /* Centers the background image */
+  background-attachment: fixed;  /* Keeps the background fixed during scrolling */
+  min-height: 100vh;  /* Ensures the container takes at least the full height of the viewport */
+  display: flex;
+  flex-direction: column;
+}
+
