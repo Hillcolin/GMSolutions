@@ -1,0 +1,27 @@
+{% extends "basetemp.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-6 text-center">
+        <div class="image-box">
+            <img id="before-image" src="{{ url_for('static', filename='before.jpg') }}" alt="Before Image" class="img-fluid">
+        </div>
+    </div>
+    <div class="col-md-6 text-center">
+        <div class="image-box">
+            <img id="after-image" src="{{ url_for('static', filename='after.jpg') }}" alt="After Image" class="img-fluid">
+        </div>
+    </div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+<script type="text/javascript">
+    var socket = io();
+    socket.on('update_image', function(data) {
+        document.getElementById('after-image').src = data.image_url;
+    });
+
+    function sendNewImage(imageUrl) {
+        socket.emit('new_image', {image_url: imageUrl});
+    }
+</script>
+{% endblock %}

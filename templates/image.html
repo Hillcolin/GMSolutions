@@ -1,0 +1,48 @@
+{% extends "basetemp.html" %}
+{% block title %}Image Page{% endblock %}
+{% block content %}
+<h1>Welcome to the Image Page</h1>
+<div class="image-box">
+    <img id="live-image" src="{{ url_for('static', filename='large_image.jpg') }}" alt="Large Image" class="img-fluid">
+</div>
+
+<!-- Image Upload Form -->
+<form id="upload-form" action="{{ url_for('upload_image') }}" method="POST" enctype="multipart/form-data">
+    <div class="form-group">
+        <label for="image">Upload Image</label>
+        <input type="file" class="form-control-file" id="image" name="image" accept="image/*" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Upload</button>
+</form>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+<script type="text/javascript">
+    var socket = io();
+    socket.on('update_image', function(data) {
+        document.getElementById('live-image').src = data.image_url;
+    });
+
+    function sendNewImage(imageUrl) {
+        socket.emit('new_image', {image_url: imageUrl});
+    }
+
+    // Handle form submission
+    document.getElementById('upload-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        var formData = new FormData(this);
+        fetch('{{ url_for('upload_image') }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                sendNewImage(data.image_url);
+            } else {
+                alert('Image upload failed or AI processing did not produce an output');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+</script>
+{% endblock %}

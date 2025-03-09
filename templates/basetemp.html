@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous"/>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" crossorigin="anonymous"/>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    <title>{% block title %}{% endblock %}</title>
+    <style>
+        * { margin:0; padding:0; }
+        html, body { width:100%; height:100%; overflow: hidden; }
+        canvas { display:block; position: fixed; top: 0; left: 0; z-index: -1; }
+        #controls {
+            margin: 20px;
+            position: absolute;
+            top: 0; left: 0;
+            color: white;
+            z-index: 1000; /* Ensure controls are above the canvas */
+        }
+        .footer {
+            position: relative; /* Changed from fixed to relative */
+            bottom: 0;
+            width: 100%;
+            background-color: #f8f9fa; /* Or any background you prefer */
+            padding: 20px 0;
+            z-index: 1000; /* Ensure the footer is above the canvas */
+        }
+
+        .footer-logo {
+            max-height: 50px; /* Adjust as needed */
+            margin: 0 10px; /* Space between logos */
+        }
+
+        /* Additional styles for the footer logos can be added here */
+        .ovin-logo {
+            max-height: 40px; /* Example */
+        }
+
+        .western-logo {
+            max-height: 45px; /* Example */
+        }
+
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light" style="z-index: 1000;"> <!-- Added z-index -->
+        <a class="navbar-brand" href="{{ url_for('views.home') }}">
+            <img src="{{ url_for('static', filename='output.png') }}" alt="Output Image" class="navbar-brand-img">
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item active">
+                    <a class="nav-link" href="{{ url_for('views.home') }}">Home <span class="sr-only">(current)</span></a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('views.login') }}">Login</a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+    <div class="container" style="z-index: 1000; position: relative;">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="alert alert-danger" role="alert">
+                    {% for category, message in messages %}
+                        <p>{{ message }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}
+        {% endblock %}
+    </div>
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col text-center">
+                    <a href="https://www.gm.com/innovation/path-to-autonomous" target="_blank">
+                        <img src="{{ url_for('static', filename='GM.png') }}" alt="GM Logo" class="footer-logo">
+                    </a>
+                    <a href="https://www.ovinhub.ca/" target="_blank">
+                        <img src="{{ url_for('static', filename='OVIN.png') }}" alt="Ovin Hub Logo" class="footer-logo ovin-logo">
+                    </a>
+                    <a href="https://www.uwo.ca/" target="_blank">
+                        <img src="{{ url_for('static', filename='western.png') }}" alt="Western Logo" class="footer-logo western-logo">
+                    </a>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col text-center">
+                    <span class="text-muted">Product of EC Solutions</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <canvas id="sand-drawing-canvas"></canvas>
+
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.0.7/dist/umd/popper.min.js" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script>
+        let points = [];
+        let tickSpeed = 5; // Reduce tick speed to reduce computational load per frame
+        let base = 180;
+        let numPoints = 5; // Reduce the number of points to reduce computational load
+        let maxTicks = 3000;
+        let ticks = 0;
+
+        function Point(x = random(width), y = random(height), a = random(PI)){
+            this.x = x;
+            this.y = y;
+            this.a = a;
+            this.dx = cos(a);
+            this.dy = sin(a);
+            this.hue = random([280, 320]); // Use hues for purple and pink
+            this.color = color(this.hue, 100, 100, .01);
+        }
+
+        Point.prototype.update = function(){
+            this.x += this.dx;
+            this.y += this.dy;
+            if (this.x < 0 || this.x >= width) this.dx *= -1;
+            if (this.y < 0 || this.y >= height) this.dy *= -1;
+            stroke(this.color);
+            line(this.x, this.y, this.neighbor.x, this.neighbor.y);
+        }
+
+        function setup(){
+            let canvas = createCanvas(windowWidth, windowHeight);
+            canvas.position(0, 0);
+            canvas.style('z-index', '-1');
+            colorMode(HSB);
+            init();  // Initialize the points and start the drawing
+            blendMode(ADD);
+            strokeWeight(1.5);
+            frameRate(60); // Set frame rate to 60 for smoother animation
+        }
+
+        function init(){
+            points = [];
+            base = random(360);
+            ticks = 0;
+
+            for (var i = 0; i < numPoints; i++) points.push(new Point());
+
+            for (var i = 0; i < points.length; i++){
+                let j = i;
+                while(j == i) j = floor(random(points.length));
+                points[i].neighbor = points[j];
+            }
+        }
+
+        function draw(){
+            if (ticks > maxTicks) return;
+            for (var n = 0; n < tickSpeed; n++){
+                for (var i = 0; i < points.length; i++){
+                    points[i].update();
+                }
+                ticks++;
+            }
+        }
+
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+            pixelDensity(1);
+            clear();
+            background(0);
+            init();
+        }
+    </script>
+</body>
+</html>
